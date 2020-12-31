@@ -1,0 +1,48 @@
+{
+  "name": "@dmakr/core",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Pull-based detection of Git changes in multiple repositories and management of dependent jobs",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=14.14"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "ava",
+    "itest": "ava --config ava.integration.config.js",
+    "lint": "eslint --ignore-path .gitignore ."
+  },
+  "keywords": [
+    "git",
+    "GitOps",
+    "continuous",
+    "integration",
+    "deployment",
+    "docker"
+  ],
+  "author": "Jens Klose <jens.klose@googlemail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "deepmerge": "^4.2.2",
+    "dotenv": "^8.2.0",
+    "kefir": "^3.8.8",
+    "loglevel": "^1.7.1",
+    "lokijs": "^1.5.11",
+    "node-cron": "^2.0.3",
+    "object-hash": "^2.1.1",
+    "simple-git": "^2.31.0"
+  },
+  "devDependencies": {
+    "ava": "^3.14.0",
+    "eslint": "^7.16.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-config-prettier": "^7.1.0",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-json": "^2.1.2",
+    "eslint-plugin-prettier": "^3.3.0",
+    "husky": "^5.0.6",
+    "prettier": "^2.2.1",
+    "sinon": "^9.2.2"
+  }
+}
