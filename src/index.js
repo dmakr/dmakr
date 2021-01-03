@@ -5,7 +5,7 @@ import {
   stopMirrorsUpdates,
 } from "./gitRepos/mirrors.js";
 import { databaseInitialize, gitContext, logger } from "./config.js";
-import agentStreams from "./jobs/executor.js";
+import jobRules from "./jobs/rules.js";
 
 let mirrors = {};
 let db = { close: () => {} };
@@ -23,7 +23,7 @@ const init = async () => {
 };
 
 const main = async () => {
-  agentStreams(context, mirrors);
+  jobRules(context, mirrors);
   startMirrorsUpdates(mirrors, context);
 };
 

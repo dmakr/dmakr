@@ -7,7 +7,6 @@ import {
 import { jobStateChanges } from "../jobStates/jobState.js";
 import { agentRunner } from "./agentRunner.js";
 import { forwardRunner } from "./forwardRunner.js";
-
 /**
  * @typedef {import("../typedefs").Context} Context
  * @typedef {import("../typedefs").JobEvent} JobEvent
@@ -19,15 +18,12 @@ import { forwardRunner } from "./forwardRunner.js";
  */
 
 /*
-guardEvent     ---p-----Fa----F--------p-----Fa-----F---
-                  \    / \   /        /\    / \    /
-  agents           .--x   .-x        /  .--x   .--x
-                  /                 /  /
-watchedState  =F=================[F]====================
-                                 /
-watchedEvent   ----------p--Fa--F-----------------------
-                         | / | /
-  agents                 .x  .x
+agents             o
+guardEvent     -p-----Fa----F--------p-----Fa-----F---
+                \  
+watchedEvent   --p--a-F-----------------------
+watchedEvent   --p--a-F-----------------------
+agents           o==o==
 
 p = prepare | a = automatic | F = finished
 */
@@ -62,7 +58,7 @@ const removeJobs = (ctx, jobEvents) =>
  * @param {import("kefir").Stream<JobStateChanged, Error>} jobStateChanged
  * @returns {import("kefir").Stream<JobEvent, Error>}
  */
-const automaticJobs = (mirrorChanges, jobStateChanged) => {
+export const automaticJobs = (mirrorChanges, jobStateChanged) => {
   const automaticSampler = jobStateChanged.filter(
     (jobStates) =>
       jobStates.trigger.status === "finished" &&
