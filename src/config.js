@@ -47,22 +47,44 @@ export const databaseInitialize = (env) =>
   });
 
 /**
- * @param {string} credString
+ * @param {Object|string} opts
  * @returns {Credentials | undefined}
  */
-const buildCredentials = (credString = "") => {
+const buildCredentials = (opts) => {
   try {
-    const jsonCreds = JSON.parse(credString);
-    return {
-      ...Object.keys(jsonCreds)
-        .filter((key) => key === "user" || key === "pass")
-        .reduce(
-          (prev, key) => ({ ...prev, [key]: encodeURI(jsonCreds[key]) }),
-          {}
-        ),
-    };
+    const jsonCreds = typeof opts === "string" ? JSON.parse(opts) : opts;
+    return Object.keys(jsonCreds)
+      .filter((key) => key === "user" || key === "pass")
+      .reduce(
+        (prev, key) => ({
+          ...prev,
+          [key]: encodeURI(jsonCreds[key]),
+        }),
+        {}
+      );
   } catch {
     return undefined;
+  }
+};
+
+/**
+ * @param {Object|string} opts
+ * @returns {Credentials | undefined}
+ */
+const buildOptions = (opts) => {
+  try {
+    const jsonOpts = typeof opts === "string" ? JSON.parse(opts) : opts;
+    return Object.keys(jsonOpts)
+      .filter((key) => !(key === "user" || key === "pass"))
+      .reduce(
+        (prev, key) => ({
+          ...prev,
+          [key]: jsonOpts[key].split(",").map((x) => x.trim()),
+        }),
+        {}
+      );
+  } catch {
+    return {};
   }
 };
 
@@ -79,13 +101,12 @@ const buildWatched = (env, log = logger) => {
   }
   try {
     const watchedRepos = JSON.parse(env.WATCHED_REPOS);
-    const watchedCredentials = JSON.parse(
-      env.WATCHED_REPOS_CREDENTIALS || "{}"
-    );
+    const watchedOptions = JSON.parse(env.WATCHED_REPOS_OPTIONS || "{}");
     return Object.keys(watchedRepos).map((key) => ({
       id: key,
       url: buildRepoUrl(watchedRepos[key], key),
-      credentials: buildCredentials(JSON.stringify(watchedCredentials[key])),
+      credentials: buildCredentials(watchedOptions[key]),
+      options: buildOptions(watchedOptions[key]),
     }));
   } catch (err) {
     log.error("[config] Error in WATCHED_REPOS* configuration found.");
@@ -104,7 +125,8 @@ export const gitContext = (env) => ({
   intervalWatched: env.INTERVAL_WATCHED * 1000 || 30000,
   dataPath: buildDataPath(env),
   jobRepo: buildRepoUrl(env.JOBS_REPO, "jobs"),
-  credentials: buildCredentials(env.JOBS_REPO_CREDENTIALS),
+  jobRepoOptions: buildOptions(env.JOBS_REPO_OPTIONS),
+  credentials: buildCredentials(env.JOBS_REPO_OPTIONS),
   watchedRepos: buildWatched(env, env.logger),
   db: env.db,
 });

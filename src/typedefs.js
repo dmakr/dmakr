@@ -5,10 +5,16 @@
  * @property {function(string):string} debug
  */
 /**
+ * @typedef {Object} RepoOptions
+ * @property {string[]} fallbackBranch
+ * @property {string[]} branchFilter
+ */
+/**
  * @typedef {Object} WatchedRepos
  * @property {string} id
  * @property {string} url
  * @property {Credentials} credentials
+ * @property {RepoOptions} options
  */
 /**
  * @typedef {Object} MirrorId
@@ -54,6 +60,7 @@
  * @property {string} intervalJobs
  * @property {string} intervalWatched
  * @property {string} jobRepo
+ * @property {RepoOptions} jobRepoOptions
  * @property {Credentials} credentials
  * @property {WatchedRepos[]} watchedRepos
  * @property {EventEmitter} emitter
@@ -74,6 +81,7 @@
  * @property {MirrorId} gitId
  * @property {CommitInfo} commit
  * @property {ModifyJobState} [source]
+ * @property {JobEvent} [parent]
  */
 /**
  * @typedef {Object} JobStateChanged

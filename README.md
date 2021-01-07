@@ -50,19 +50,19 @@ Examples for files:
 
 ## Configuration
 
-There are several ways to configure the credentials of the Git repositories. It is recommended to use the preferred variant of the runtime system. Note that when using XXX_REPO_CREDENTIALS from these configurable environment variables, it will be added to the URL.
+There are several ways to configure the credentials of the Git repositories. It is recommended to use the preferred variant of the runtime system. Note that when using XXX_REPO_OPTIONS for these configurable environment variables, it will be added to the URL.
 
 Please use the secrets system of your context, a password store or [git credential store.](https://git-scm.com/docs/git-credential-store)
 
-| Key                       | Default  | Description                                                                                                                                                                               |
-| ------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DATA_PATH                 | `.dmakr` | Entry directory for all write accesses like: mirror repositories, status database and job workspaces                                                                                      |
-| INTERVAL_JOBS             | 20       | JOBS_REPOS polling interval in seconds                                                                                                                                                    |
-| INTERVAL_WATCHED          | 30       | WATCHED_REPOS polling interval in seconds                                                                                                                                                 |
-| JOBS_REPO                 |          | **[required]** Url or local path that points to a git repository with dmakr job definitions as shell script file; Example: `https://github.com/dmakr/job-demo.git`                        |
-| JOBS_REPO_CREDENTIALS     |          | Git credentials as JSON string: `{"user": "max.tester", "pass": "1d85559f9f29843e39f77da81d736a9f"}`                                                                                      |
-| WATCHED_REPOS             |          | One or more Urls or local paths that points to git repositories as serialized JSON string; Example:`{"app": "../mockRepos/first", "service": "https://bitbucket.org/dmakr/gql-core.git"}` |
-| WATCHED_REPOS_CREDENTIALS |          | Git credentials as JSON string: `{"app": {"user": "max.tester", "pass": "77da8Wk29843e377da8Wks3Ua9f"}, "service": {"user": "jklahn", "pass": "Dx4g7nq85551s3U7t6W"}}`                    |
+| Key                   | Default  | Description                                                                                                                                                                                                                                                   |
+| --------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DATA_PATH             | `.dmakr` | Entry directory for all write accesses like: mirror repositories, status database and job workspaces                                                                                                                                                          |
+| INTERVAL_JOBS         | 20       | JOBS_REPOS polling interval in seconds                                                                                                                                                                                                                        |
+| INTERVAL_WATCHED      | 30       | WATCHED_REPOS polling interval in seconds                                                                                                                                                                                                                     |
+| JOBS_REPO             |          | **[required]** Url or local path that points to a git repository with dmakr job definitions as shell script file; Example: `https://github.com/dmakr/job-demo.git`                                                                                            |
+| JOBS_REPO_OPTIONS     |          | Repo options as JSON string: `{"user": "max.tester", "pass": "1d85559f9f29843e39f77da81d736a9f"}`                                                                                                                                                             |
+| WATCHED_REPOS         |          | One or more Urls or local paths that points to git repositories as serialized JSON string; Example:`{"app": "../mockRepos/first", "service": "https://bitbucket.org/dmakr/gql-core.git"}`                                                                     |
+| WATCHED_REPOS_OPTIONS |          | Repo options per key as JSON string: `{"app": {"user": "max.tester", "pass": "77da8Wk29843e377da8Wks3Ua9f"}, "service": {"user": "jklahn", "pass": "Dx4g7nq85551s3U7t6W", "fallbackBranch": "production", "branchFilter": "main,master,feature/,release/" }}` |
 
 ## Development
 
