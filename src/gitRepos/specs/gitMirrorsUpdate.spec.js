@@ -8,7 +8,7 @@ import simpleGit from "simple-git";
 import Loki from "lokijs";
 import sinon from "sinon";
 import { buildMirrors, updateMirror } from "../mirrors.js";
-import { mirrorStateChanges } from "../mirrorChanges.js";
+import { subscribeRepo } from "../mirrorChanges.js";
 
 const REPO_REMOTE = "/data/test/start-repo";
 const DATA_PATH = "/data/updateSpec";
@@ -21,6 +21,11 @@ const context = {
   logger: { info: sinon.spy(), error: sinon.spy(), debug: sinon.spy() },
   db,
   emitter: new EventEmitter(),
+  jobRepoOptions: {
+    defaultBranch: ["main", "master"],
+    branchFilter: ["master", "main", "feature/", "release/", "production"],
+    interval: 30000,
+  },
 };
 
 test.before(async (t) => {
@@ -40,14 +45,14 @@ test.before(async (t) => {
     writeFile(join(REPO_REMOTE, "file1.txt"), "file1"),
     writeFile(join(REPO_REMOTE, "file2.txt"), "file2"),
   ]);
-  t.context.stream = mirrorStateChanges(t.context.MirrorIds, context);
+  t.context.guard = subscribeRepo(context, t.context.MirrorIds.guard);
 });
 
 test.serial("Updating new commits from remote", async (t) => {
   const { update, remote } = t.context;
   await remote.add("file1.txt").commit("initial");
   t.plan(2);
-  const subscription = t.context.stream.guard.observe({
+  const subscription = t.context.guard.skip(1).observe({
     value(value) {
       t.like(value.heads[0], { branch: "master" });
     },
@@ -73,7 +78,7 @@ test.serial("Updating new tags from remote", async (t) => {
   const { update, remote } = t.context;
   await remote.addTag("v1.0.0");
   t.plan(2);
-  const subscription = t.context.stream.guard.observe({
+  const subscription = t.context.guard.observe({
     value(value) {
       t.like(value.heads[0], { tags: ["v1.0.0"] });
     },

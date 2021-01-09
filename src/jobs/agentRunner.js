@@ -74,10 +74,24 @@ export const agentRunner = (ctx, gitId) => (job) =>
             env: { ...job.gitId, ...job.commit },
           });
           agent.stdout.on("data", (x) => {
-            stream.emit({ id, type: "stdout", payload: x });
+            stream.emit({
+              id,
+              commitId: job.commit.commitId,
+              branch: job.commit.branch,
+              job: `${job.type}`,
+              type: "stdout",
+              payload: x,
+            });
           });
           agent.stderr.on("data", (x) => {
-            stream.emit({ id, type: "stderr", payload: x });
+            stream.emit({
+              id,
+              commitId: job.commit.commitId,
+              branch: job.commit.branch,
+              job: `${job.type}`,
+              type: "stderr",
+              payload: x,
+            });
           });
           agent.on("close", (code) => {
             modifyJobState(ctx, {

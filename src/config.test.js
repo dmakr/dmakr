@@ -6,9 +6,8 @@ import { gitContext, logger } from "./config.js";
 test("Env vars mapping", (t) => {
   const env = dotenv.parse`
     WATCHED_REPOS={"app": "https://mygit.test/app", "api": "git://example.com/api"}
-    WATCHED_REPOS_OPTIONS={"app": {"user": "achmet", "pass": "dsjshu#+", "branchFilter": "main, feature,dev"}, "api": {"fallbackBranch": "test", "user": "doris", "pass": "dshf745jshu$Ä"}}
+    WATCHED_REPOS_OPTIONS={"app": {"user": "achmet", "pass": "dsjshu#+", "branchFilter": "main, feature,dev"}, "api": {"defaultBranch": "test", "user": "doris", "pass": "dshf745jshu$Ä"}}
     JOBS_REPO="https://mygit.test/jobs"
-    JOBS_REPO_OPTIONS={"user": "michael", "pass": "dshf745jshu$%"}
     JOBS_REPO_OPTIONS={"user": "michael", "pass": "dshf745jshu$%"}
   `;
   // logger.debug(env);
@@ -20,18 +19,65 @@ test("Env vars mapping", (t) => {
       dataPath: `${process.cwd()}/.dmakr`,
       jobRepo: "https://mygit.test/jobs",
       credentials: { user: "michael", pass: "dshf745jshu$%25" },
+      jobRepoOptions: {
+        defaultBranch: ["main", "master"],
+        branchFilter: ["master", "main", "feature/", "release/", "production"],
+        interval: 30000,
+      },
+      ruleOptions: {
+        "guard.jobs": {
+          defaultBranch: ["main", "master"],
+          branchFilter: [
+            "master",
+            "main",
+            "feature/",
+            "release/",
+            "production",
+            "feature",
+            "dev",
+          ],
+        },
+        "watched.app": {
+          defaultBranch: ["main", "master"],
+          branchFilter: ["main", "feature", "dev"],
+        },
+        "watched.api": {
+          defaultBranch: ["test"],
+          branchFilter: [
+            "master",
+            "main",
+            "feature/",
+            "release/",
+            "production",
+          ],
+        },
+      },
       watchedRepos: [
         {
           id: "app",
           url: "https://mygit.test/app",
           credentials: { user: "achmet", pass: "dsjshu#+" },
-          options: { branchFilter: ["main", "feature", "dev"] },
+          options: {
+            interval: 40000,
+            branchFilter: ["main", "feature", "dev"],
+            defaultBranch: ["main", "master"],
+          },
         },
         {
           id: "api",
           url: "git://example.com/api",
           credentials: { user: "doris", pass: "dshf745jshu$%C3%84" },
-          options: { fallbackBranch: ["test"] },
+          options: {
+            interval: 40000,
+            branchFilter: [
+              "master",
+              "main",
+              "feature/",
+              "release/",
+              "production",
+            ],
+            defaultBranch: ["test"],
+          },
         },
       ],
     }
@@ -41,19 +87,15 @@ test("Env vars mapping", (t) => {
 test("Env vars only for JOBS without WATCHED_REPOS", (t) => {
   const env = dotenv.parse`
     JOBS_REPO="https://mygit.test/jobs"
-    JOBS_REPO_OPTIONS={"user": "michael", "pass": "dshf745jshu$%", "fallbackBranch": "test"}
+    JOBS_REPO_OPTIONS={"interval": 30, "user": "michael", "pass": "dshf745jshu$%", "defaultBranch": "test"}
   `;
   env.logger = { error: sinon.spy() };
-  t.like(
-    gitContext(env),
-
-    {
-      jobRepo: "https://mygit.test/jobs",
-      credentials: { user: "michael", pass: "dshf745jshu$%25" },
-      watchedRepos: [],
-      jobRepoOptions: { fallbackBranch: ["test"] },
-    }
-  );
+  t.like(gitContext(env), {
+    jobRepo: "https://mygit.test/jobs",
+    credentials: { user: "michael", pass: "dshf745jshu$%25" },
+    watchedRepos: [],
+    jobRepoOptions: { defaultBranch: ["test"], interval: 30000 },
+  });
 });
 
 test("Throws error if required JOBS repo is missing", (t) => {
@@ -104,7 +146,17 @@ test("Should work without WATCHED_REPOS_OPTIONS", (t) => {
           id: "app",
           url: "https://mygit.test/app",
           credentials: undefined,
-          options: {},
+          options: {
+            defaultBranch: ["main", "master"],
+            interval: 40000,
+            branchFilter: [
+              "master",
+              "main",
+              "feature/",
+              "release/",
+              "production",
+            ],
+          },
         },
       ],
     }

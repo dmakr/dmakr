@@ -13,7 +13,7 @@ const getJobFile = async (dir, id, jobType) => {
 
     if (dirEntry.isDirectory() && dirEntry.name.match(/.*dmakr.*/i)) {
       getJobFile(res, jobType);
-    } else if (dirEntry.name === `${id}.${jobType}.sh`) {
+    } else if (dirEntry.name === `${id}.${jobType.split(":")[0]}.sh`) {
       return res;
     }
   }
@@ -21,9 +21,6 @@ const getJobFile = async (dir, id, jobType) => {
 };
 export const JOB_PREPARE = "prepare";
 export const JOB_AUTOMATIC = "automatic";
-
-//     "docker",
-//     `docker run -e REPO="myVar" --rm --volumes-from $(hostname) citool/node-git:14-alpine sh env.sh`,
 
 /**
  * @param  {import("../typedefs").Context} ctx
@@ -67,10 +64,24 @@ export const forwardRunner = (ctx) => (job) =>
             },
           });
           agent.stdout.on("data", (x) => {
-            stream.emit({ id, type: "stdout", payload: x });
+            stream.emit({
+              id,
+              commitId: job.commit.commitId,
+              branch: job.commit.branch,
+              job: `${job.type}`,
+              type: "stdout",
+              payload: x,
+            });
           });
           agent.stderr.on("data", (x) => {
-            stream.emit({ id, type: "stderr", payload: x });
+            stream.emit({
+              id,
+              commitId: job.commit.commitId,
+              branch: job.commit.branch,
+              job: `${job.type}`,
+              type: "stderr",
+              payload: x,
+            });
           });
           agent.on("close", (code) => {
             modifyJobState(ctx, {

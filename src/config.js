@@ -69,23 +69,26 @@ const buildCredentials = (opts) => {
 
 /**
  * @param {Object|string} opts
- * @returns {Credentials | undefined}
+ * @param {Boolean} isGuard
+ * @returns {RepoOptions}
  */
-const buildOptions = (opts) => {
+const buildOptions = (opts, isGuard = false) => {
+  let jsonOpts;
+  const interval = isGuard ? 30 : 40;
+  const branches = ["main", "master"];
+  const filter = ["master", "main", "feature/", "release/", "production"];
   try {
-    const jsonOpts = typeof opts === "string" ? JSON.parse(opts) : opts;
-    return Object.keys(jsonOpts)
-      .filter((key) => !(key === "user" || key === "pass"))
-      .reduce(
-        (prev, key) => ({
-          ...prev,
-          [key]: jsonOpts[key].split(",").map((x) => x.trim()),
-        }),
-        {}
-      );
+    jsonOpts = typeof opts === "string" ? JSON.parse(opts) : opts ?? {};
   } catch {
-    return {};
+    jsonOpts = {};
   }
+  return {
+    interval: (jsonOpts.interval ?? interval) * 1000,
+    defaultBranch:
+      jsonOpts.defaultBranch?.split(",").map((x) => x.trim()) ?? branches,
+    branchFilter:
+      jsonOpts.branchFilter?.split(",").map((x) => x.trim()) ?? filter,
+  };
 };
 
 /**
@@ -119,14 +122,37 @@ const buildWatched = (env, log = logger) => {
  * @param {Object.<string, string>} env
  * @returns {Context}
  */
-export const gitContext = (env) => ({
-  logger: env.logger || logger,
-  intervalJobs: env.INTERVAL_JOBS * 1000 || 20000,
-  intervalWatched: env.INTERVAL_WATCHED * 1000 || 30000,
-  dataPath: buildDataPath(env),
-  jobRepo: buildRepoUrl(env.JOBS_REPO, "jobs"),
-  jobRepoOptions: buildOptions(env.JOBS_REPO_OPTIONS),
-  credentials: buildCredentials(env.JOBS_REPO_OPTIONS),
-  watchedRepos: buildWatched(env, env.logger),
-  db: env.db,
-});
+export const gitContext = (env) => {
+  const jobRepoOptions = buildOptions(env.JOBS_REPO_OPTIONS, true);
+  const watchedRepos = buildWatched(env, env.logger);
+  return {
+    logger: env.logger || logger,
+    dataPath: buildDataPath(env),
+    jobRepo: buildRepoUrl(env.JOBS_REPO, "jobs"),
+    credentials: buildCredentials(env.JOBS_REPO_OPTIONS),
+    jobRepoOptions,
+    watchedRepos,
+    ruleOptions: {
+      "guard.jobs": {
+        defaultBranch: jobRepoOptions.defaultBranch,
+        branchFilter: [
+          ...new Set([
+            ...jobRepoOptions.branchFilter,
+            ...watchedRepos.map((x) => x.options.branchFilter).flat(),
+          ]),
+        ],
+      },
+      ...watchedRepos.reduce(
+        (prev, cur) => ({
+          ...prev,
+          [`watched.${cur.id}`]: {
+            defaultBranch: cur.options.defaultBranch,
+            branchFilter: cur.options.branchFilter,
+          },
+        }),
+        {}
+      ),
+    },
+    db: env.db,
+  };
+};

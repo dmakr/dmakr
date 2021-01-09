@@ -3,6 +3,7 @@ import kefir from "kefir";
 import hash from "object-hash";
 /** @typedef {import("../typedefs").Context} Context */
 /** @typedef {import("../typedefs").MirrorId} MirrorId */
+/** @typedef {import("../typedefs").JobEvent} JobEvent */
 /** @typedef {import("../typedefs").ModifyJobState} ModifyJobState */
 /** @typedef {import("../typedefs").JobStateChanged} JobStateChanged */
 
@@ -48,7 +49,63 @@ export const modifyJobState = async (ctx, jobStatus) => {
     });
     ctx.emitter.emit("jobStateChanged", {
       trigger: jobStatus,
-      state: newStatus,
+      state: merged,
     });
   }
+};
+
+/**
+ * @param {Context} ctx
+ * @param {JobEvent} job
+ * @param {string} ws  Workspace path of cloned sources
+ * @fires jobState#jobStateChanged
+ */
+export const registerIndirectlyRunner = async (ctx, job, ws) => {
+  const { commit, parent, gitId, type } = job;
+  const doc = ctx.db.getByCommit(parent.gitId.id, parent.commit.commitId);
+  await ctx.db.setByCommit(
+    parent.gitId.id,
+    parent.commit.commitId,
+    deepMerge(doc, {
+      indirectlyRunner: {
+        [parent.commit.branch]: {
+          [parent.type]: {
+            [gitId.id]: {
+              status: "running",
+              count: ctx.watchedRepos.length,
+              type,
+              ws,
+              commitId: commit.commitId,
+              branch: commit.branch,
+            },
+          },
+        },
+      },
+    })
+  );
+};
+
+/**
+ * @param {Context} ctx
+ * @param {JobEvent} job
+ * @fires jobState#jobStateChanged
+ */
+export const finishIndirectlyRunner = async (ctx, job) => {
+  const { parent, gitId } = job;
+  const doc = ctx.db.getByCommit(parent.gitId.id, parent.commit.commitId);
+  await ctx.db.setByCommit(
+    parent.gitId.id,
+    parent.commit.commitId,
+    deepMerge(doc, {
+      indirectlyRunner: {
+        [parent.commit.branch]: {
+          [parent.type]: {
+            [gitId.id]: {
+              status: "finished",
+            },
+          },
+        },
+      },
+    })
+  );
 };

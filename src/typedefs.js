@@ -6,8 +6,13 @@
  */
 /**
  * @typedef {Object} RepoOptions
- * @property {string[]} fallbackBranch
+ * @property {string[]} defaultBranch
  * @property {string[]} branchFilter
+ * @property {number} interval
+ */
+/**
+ * @typedef {Object} RuleOptions
+ * @property {RepoOptions}
  */
 /**
  * @typedef {Object} WatchedRepos
@@ -57,10 +62,9 @@
 /**
  * @typedef {Object} Context
  * @property {string} dataPath
- * @property {string} intervalJobs
- * @property {string} intervalWatched
  * @property {string} jobRepo
  * @property {RepoOptions} jobRepoOptions
+ * @property {RuleOptions} ruleOptions
  * @property {Credentials} credentials
  * @property {WatchedRepos[]} watchedRepos
  * @property {EventEmitter} emitter

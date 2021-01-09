@@ -6,27 +6,31 @@ import simpleGit from "simple-git";
 import Loki from "lokijs";
 import sinon from "sinon";
 import { buildMirrors, updateMirror } from "../mirrors.js";
-import {
-  mirrorStateChanges,
-  streamOfChangedAndRemoved,
-} from "../mirrorChanges.js";
+import { streamOfChangedAndRemoved, subscribeRepo } from "../mirrorChanges.js";
 
-const MOCK_REPO = "/data/mock/repo-jobGraph";
+const MOCK_REPO = "/data/mock/mirrorEvents";
 const { LokiMemoryAdapter } = Loki;
 const db = new Loki("sandbox.db", { adapter: new LokiMemoryAdapter() });
 const logger = { info: sinon.spy(), error: sinon.spy(), debug: sinon.spy() };
 const context = {
-  dataPath: "/data/jobBuildGraph",
+  dataPath: "/data/mirrorEvents",
   jobRepo: MOCK_REPO,
   watchedRepos: [],
   logger,
   db,
   emitter: new EventEmitter(),
+  jobRepoOptions: {
+    defaultBranch: ["main", "master"],
+    branchFilter: ["master", "main", "feature/", "release/", "production"],
+    interval: 30000,
+  },
 };
 
 test.before(async () => {
   await rmdir(MOCK_REPO, { recursive: true });
   await mkdir(MOCK_REPO, { recursive: true });
+  await rmdir(context.dataPath, { recursive: true });
+  await mkdir(context.dataPath, { recursive: true });
   await Promise.all([
     writeFile(join(MOCK_REPO, "dmakr.prepare.sh"), "sleep .5 && ls -la"),
     writeFile(join(MOCK_REPO, "dmakr.automatic.sh"), 'echo "CD ftw"'),
@@ -44,11 +48,12 @@ test("New commits should fire 'prepare' events", async (t) => {
 
   const mirrors = await buildMirrors(context);
   const jobStream = streamOfChangedAndRemoved(
-    mirrorStateChanges(mirrors, context).guard,
-    context
+    subscribeRepo(context, mirrors.guard)
   )
     .take(2)
     .bufferWhile();
+
+  t.plan(1);
   const expectedEvents = () => [
     {
       type: "changed",
@@ -60,7 +65,7 @@ test("New commits should fire 'prepare' events", async (t) => {
       },
       gitId: {
         id: "guard.jobs",
-        url: "/data/jobBuildGraph/.mirrors/jobs",
+        url: "/data/mirrorEvents/.mirrors/jobs",
       },
     },
     {
@@ -73,7 +78,7 @@ test("New commits should fire 'prepare' events", async (t) => {
       },
       gitId: {
         id: "guard.jobs",
-        url: "/data/jobBuildGraph/.mirrors/jobs",
+        url: "/data/mirrorEvents/.mirrors/jobs",
       },
     },
   ];
@@ -89,14 +94,15 @@ test("New commits should fire 'prepare' events", async (t) => {
   */
 
   await updateMirror(mirrors.guard, context);
+  await updateMirror(mirrors.guard, context);
 
   const co = await remote.add("dmakr*").commit("add jobs");
   commitIds.set("first", co.commit);
   await updateMirror(mirrors.guard, context);
+  await updateMirror(mirrors.guard, context);
 
   const co2 = await remote.add("README").commit("add readme");
   commitIds.set("second", co2.commit);
-  const response = jobStream.toPromise();
   await updateMirror(mirrors.guard, context);
-  return response.then(sub.unsubscribe);
+  sub.unsubscribe();
 });

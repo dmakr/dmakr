@@ -24,7 +24,7 @@ const init = async () => {
 
 const main = async () => {
   jobRules(context, mirrors);
-  startMirrorsUpdates(mirrors, context);
+  startMirrorsUpdates(context, mirrors);
 };
 
 init()

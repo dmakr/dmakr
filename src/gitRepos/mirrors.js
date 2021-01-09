@@ -4,6 +4,11 @@ import { mkdir, rm } from "fs/promises";
 import { join } from "path";
 import simpleGit from "simple-git";
 import gitRemote from "./gitRemote.js";
+/** @typedef {import("../typedefs").Logger} Logger */
+/** @typedef {import("../typedefs").MirrorIds} MirrorIds */
+/** @typedef {import("../typedefs").Credentials} Credentials */
+/** @typedef {import("../typedefs").JobEvent} JobEvent */
+/** @typedef {import("../typedefs").Context} Context */
 
 const GUARD_ID = "guard.jobs";
 const watchedId = (id) => `watched.${id}`;
@@ -33,11 +38,11 @@ const isClonedRepo = async (url, gitPath) => {
 };
 
 /**
- * @param {import("../typedefs").Logger} log
+ * @param {Logger} log
  * @param {string} id
  * @param {string} mirrorPath
  * @param {string} remoteUrl
- * @param {import("../typedefs.js").Credentials} credentials
+ * @param {Credentials} credentials
  * @returns {Promise<import("simple-git").SimpleGit>}
  */
 const getMirror = (log, id, mirrorPath, remoteUrl, credentials = {}) =>
@@ -62,8 +67,8 @@ const getMirror = (log, id, mirrorPath, remoteUrl, credentials = {}) =>
   );
 
 /**
- * @param  {import("../typedefs").Context} ctx
- * @returns {Promise<import("../typedefs.js").MirrorIds>}
+ * @param  {Context} ctx
+ * @returns {Promise<MirrorIds>}
  */
 export const buildMirrors = async (ctx) => {
   const {
@@ -111,8 +116,8 @@ export const buildMirrors = async (ctx) => {
 
 /**
  * Build a workspace with checked-out resource
- * @param {import("../typedefs.js").Context} ctx Environment related context
- * @param {import("../typedefs.js").JobEvent} job Current job object
+ * @param {Context} ctx Environment related context
+ * @param {JobEvent} job Current job object
  */
 export const cloneWorkspace = async (ctx, job) => {
   const { dataPath } = ctx;
@@ -128,15 +133,15 @@ export const cloneWorkspace = async (ctx, job) => {
   const git = simpleGit(wsJobPath);
   if (!(await git.checkIsRepo("root"))) {
     await git.init().addRemote("origin", job.gitId.url);
+    await git
+      .fetch([
+        "--depth",
+        1,
+        "origin",
+        await mirror.revparse([job.commit.commitId]),
+      ])
+      .checkout([job.commit.commitId]);
   }
-  await git
-    .fetch([
-      "--depth",
-      1,
-      "origin",
-      await mirror.revparse([job.commit.commitId]),
-    ])
-    .checkout([job.commit.commitId]);
   return wsJobPath;
 };
 
@@ -148,7 +153,7 @@ export const cloneWorkspace = async (ctx, job) => {
  */
 
 /**
- * @param {import("../typedefs.js").MirrorId} gitId
+ * @param {MirrorId} gitId
  * @returns {Promise<import("../typedefs.js").CommitInfo[]>}
  */
 export const scanMirror = async (gitId) => {
@@ -170,8 +175,17 @@ export const scanMirror = async (gitId) => {
 };
 
 /**
- * @param {import("../typedefs.js").MirrorId} gitId
- * @param  {import("../typedefs").Context} ctx
+ * @param {MirrorId} gitId
+ * @returns {Promise<import("../typedefs.js").BranchHeads>}
+ */
+export const fetchMirrorHeads = async (gitId) => ({
+  gitId,
+  heads: await scanMirror(gitId),
+});
+
+/**
+ * @param {MirrorId} gitId
+ * @param  {Context} ctx
  * @fires git#updateMirror
  */
 export const updateMirror = (gitId, ctx) =>
@@ -184,10 +198,7 @@ export const updateMirror = (gitId, ctx) =>
         windowsHide: true,
       });
       const done = async () => {
-        ctx.emitter.emit("updateMirror", {
-          gitId,
-          heads: await scanMirror(gitId),
-        });
+        ctx.emitter.emit("updateMirror", await fetchMirrorHeads(gitId));
         update.stdout.removeAllListeners("error");
         update.removeAllListeners("error");
         update.removeAllListeners("exit");
@@ -203,8 +214,8 @@ export const updateMirror = (gitId, ctx) =>
 
 /**
  * @param {number} interval Refresh of the repo
- * @param {import("../typedefs.js").MirrorId} mirrorId
- * @param  {import("../typedefs").Context} ctx
+ * @param {MirrorId} mirrorId
+ * @param  {Context} ctx
  * @throws {AssertionError}
  */
 const restartUpdateStream = (interval, mirrorId, ctx) => {
@@ -221,7 +232,7 @@ const restartUpdateStream = (interval, mirrorId, ctx) => {
 };
 
 /**
- * @param {import("../typedefs.js").MirrorIds} mirrorIds
+ * @param {MirrorIds} mirrorIds
  * @throws {AssertionError}
  */
 export const stopMirrorsUpdates = (mirrorIds) => {
@@ -235,12 +246,16 @@ export const stopMirrorsUpdates = (mirrorIds) => {
 };
 
 /**
- * @param {import("../typedefs.js").MirrorIds} mirrorIds
- * @param {import("../typedefs.js").Context>} ctx
+ * @param {Context} ctx
+ * @param {MirrorIds} mirrorIds
  */
-export const startMirrorsUpdates = (mirrorIds, ctx) => {
-  restartUpdateStream(ctx.intervalJobs, mirrorIds.guard, ctx);
-  Object.keys(mirrorIds.watched).forEach((repoId) => {
-    restartUpdateStream(ctx.intervalWatched, mirrorIds.watched[repoId], ctx);
-  });
+export const startMirrorsUpdates = (ctx, mirrorIds) => {
+  restartUpdateStream(ctx.jobRepoOptions.interval, mirrorIds.guard, ctx);
+  ctx.watchedRepos.map((watched) =>
+    restartUpdateStream(
+      watched.options.interval,
+      mirrorIds.watched[watched.id],
+      ctx
+    )
+  );
 };

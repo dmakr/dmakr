@@ -15,12 +15,6 @@ test.cb(
             message: "add jobs",
             tags: ["0.0.1"],
           },
-          {
-            branch: "dev/only",
-            commitId: "f1460ac",
-            message: "trying something different",
-            tags: [],
-          },
         ],
       },
     ]);
