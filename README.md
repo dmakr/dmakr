@@ -6,14 +6,14 @@ It works where webhooks fail. No matter if you manage one repo or many dependent
 
 ```nodejs
 /*
-agents                e  e                        e  e
-guardEvent     -c-----p--a----------------ci------pi-a---
-                \    /                   /  \    /
-watchedEvent   --pi-a-------------c--p--a----------------
-watchedEvent   --pi-a------------------------pi-a--------
-agents           e  e                e  e   [e][e]
+agents                 e e                e e
+guardEvent     -c------p-a----------------p-a-----
+                 \    /                  /
+watchedEvent   ---|p-a-------------c-p--a---------
+watchedEvent   ---|p-a---------------p--a---------
+agents             e e               e  e
 
-c = changed | p = prepare | a = automatic | i = indirectly | e = exec
+c = changed | p = prepare | a = automatic | e = exec
 */
 ```
 
@@ -44,9 +44,10 @@ docker run -v /var/run/docker.sock:/var/run/docker.sock -v <dmakrVolume>:/app/.d
 - Polls from a set of git repositories to detect changes
 - Detects jobs in all repos with fallback to the special JOBS repo
 - Handles 2 job stages: _prepare_ -> _automatic_
-- automatic runs only on branch head commit, unless you force it
+- Automatic jobs runs only on branch head commits and success of prepare
+- Forwarding to the JOBS repo: no need for new files in your project.
 
-Dmakr searches for file name patterns and, if successful, starts the file as a shell script. Filenames are found in the following order: `<jobId>.<jobType>.sh`, `dmakr.<jobType>.sh`.
+Dmakr searches for file name patterns and, if successful, starts the file as a shell script. Filenames are found in the following order: `<jobId>.<jobType>.sh`, `dmakr.<jobType>.sh`. Forwarded file search looks only for `<jobId>.<jobType>.sh` to stay uniquely.
 
 Starting from the working directory, the search continues in depth if the directory name contains the pattern "dmakr" (case insensitive). The first hit ends the search. So don't make it complicated!
 
@@ -78,8 +79,6 @@ Please use the secrets system of your context, a password store or [git credenti
 | Key                   | Default                       | Description                                                                                                                                                                                                                                                  |
 | --------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | DATA_PATH             | `.dmakr`                      | Entry directory for all write accesses like: mirror repositories, status database and job workspaces                                                                                                                                                         |
-| INTERVAL_JOBS         | 30                            | JOBS_REPOS polling interval in seconds                                                                                                                                                                                                                       |
-| INTERVAL_WATCHED      | 40                            | WATCHED_REPOS polling interval in seconds                                                                                                                                                                                                                    |
 | JOBS_REPO             |                               | **[required]** Url or local path that points to a git repository with dmakr job definitions as shell script file; Example: `https://github.com/dmakr/job-demo.git`                                                                                           |
 | JOBS_REPO_OPTIONS     | [Repo Options](#repo-options) | Repo options as JSON string: `{"user": "max.tester", "pass": "1d85559f9f29843e39f77da81d736a9f"}`                                                                                                                                                            |
 | WATCHED_REPOS         |                               | One or more Urls or local paths that points to git repositories as serialized JSON string; Example:`{"app": "../mockRepos/first", "service": "https://bitbucket.org/dmakr/gql-core.git"}`                                                                    |
@@ -89,14 +88,15 @@ Please use the secrets system of your context, a password store or [git credenti
 
 Important to know: if you configure the multi-repo mode, some logical inheritance takes effect.
 
-The configured branch filter for the WATCHED repos are combined and mixed with the eventual special branches of the JOB repo. This is necessary because suitable job files are also searched for in the JOB repo, they might even be exclusively maintained there.
+The configured branch filter for the WATCHED repos are summarized and then mixed with the JOB repo. This is necessary because suitable job files are also searched for in the JOB repo, they might even be exclusively maintained there.
 
-| Option        | Default                                                | Description                                                                                                   |
-| ------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| user          |                                                        | git repo username                                                                                             |
-| pass          |                                                        | git repo password or token                                                                                    |
-| defaultBranch | ["main", "master"]                                     | The main brach of the repo. You can configure serveral in a comma seperated list to manage transition phases. |
-| branchFilter  | ["master", "main","feature/","release/","production",] | All relevant branches starts with this pattern.                                                               |
+| Option        | Default                                                | Description                                                                                                                          |
+| ------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| user          |                                                        | git repo username                                                                                                                    |
+| pass          |                                                        | git repo password or token                                                                                                           |
+| interval      | 30 (JOBS_REPO), 40 (WATCHED_REPOS)                     | repo polling interval in seconds                                                                                                     |
+| defaultBranch | ["main", "master"]                                     | The main brach of the repo. You can configure several in a comma separated list to manage transition phases. The order is important. |
+| branchFilter  | ["master", "main","feature/","release/","production",] | All relevant branches starts with this pattern.                                                                                      |
 
 ## Development
 

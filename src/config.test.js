@@ -5,6 +5,7 @@ import { gitContext, logger } from "./config.js";
 
 test("Env vars mapping", (t) => {
   const env = dotenv.parse`
+    DATA_PATH="config"
     WATCHED_REPOS={"app": "https://mygit.test/app", "api": "git://example.com/api"}
     WATCHED_REPOS_OPTIONS={"app": {"user": "achmet", "pass": "dsjshu#+", "branchFilter": "main, feature,dev"}, "api": {"defaultBranch": "test", "user": "doris", "pass": "dshf745jshu$Ä"}}
     JOBS_REPO="https://mygit.test/jobs"
@@ -16,7 +17,7 @@ test("Env vars mapping", (t) => {
 
     {
       logger,
-      dataPath: `${process.cwd()}/.dmakr`,
+      dataPath: `${process.cwd()}/config`,
       jobRepo: "https://mygit.test/jobs",
       credentials: { user: "michael", pass: "dshf745jshu$%25" },
       jobRepoOptions: {
@@ -127,7 +128,7 @@ test("Corrupted WATCHED_REPOS_OPTIONS throws error", (t) => {
   t.throws(() => gitContext(env));
 });
 
-test("Should work without WATCHED_REPOS_OPTIONS", (t) => {
+test("Should work without WATCHED credentials", (t) => {
   const env = dotenv.parse`
     WATCHED_REPOS={"app": "https://mygit.test/app"}
     JOBS_REPO="https://mygit.test/jobs"

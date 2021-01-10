@@ -7,23 +7,21 @@ import Loki from "lokijs";
 import sinon from "sinon";
 import { buildMirrors, updateMirror } from "../mirrors.js";
 import { streamOfChangedAndRemoved, subscribeRepo } from "../mirrorChanges.js";
+import { gitContext } from "../../config.js";
 
 const MOCK_REPO = "/data/mock/mirrorEvents";
 const { LokiMemoryAdapter } = Loki;
 const db = new Loki("sandbox.db", { adapter: new LokiMemoryAdapter() });
 const logger = { info: sinon.spy(), error: sinon.spy(), debug: sinon.spy() };
+
 const context = {
+  ...gitContext({
+    JOBS_REPO: MOCK_REPO,
+    logger,
+    db,
+  }),
   dataPath: "/data/mirrorEvents",
-  jobRepo: MOCK_REPO,
-  watchedRepos: [],
-  logger,
-  db,
   emitter: new EventEmitter(),
-  jobRepoOptions: {
-    defaultBranch: ["main", "master"],
-    branchFilter: ["master", "main", "feature/", "release/", "production"],
-    interval: 30000,
-  },
 };
 
 test.before(async () => {
