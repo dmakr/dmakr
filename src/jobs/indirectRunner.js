@@ -58,9 +58,9 @@ const indirectRunner = (ctx) =>
             await registerIndirectlyRunner(ctx, job, ws);
             return ws;
           })
-          .then((ws) => ({
+          .then(async (ws) => ({
             ws,
-            execFile: getJobFile(ws, job.gitId.id, job.type),
+            execFile: await getJobFile(ws, job.gitId.id, job.type),
           }))
       )
       .flatMap(({ ws, execFile }) => {

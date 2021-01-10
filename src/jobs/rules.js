@@ -31,8 +31,8 @@ c = changed | p = prepare | a = automatic | i = indirectly | e = exec
  * @param {Context} ctx
  * @param {import("kefir").Stream<JobEvent, Error>} jobEvents
  */
-const removeJobs = (ctx, jobEvents) =>
-  jobEvents.filter(({ type }) => type === "removed");
+// const removeJobs = (ctx, jobEvents) =>
+//   jobEvents.filter(({ type }) => type === "removed");
 
 /**
  * @param {import("kefir").Stream<BranchHeads, Error>} mirrorHeads
@@ -120,10 +120,14 @@ export default (ctx, mirrors) => {
         Object.keys(mirrors.watched).map((key) =>
           subscribeRepo(ctx, mirrors.watched[key])
         ),
-        streamOfChangedAndRemoved(subscribeRepo(ctx, mirrors.guard)).spy()
+        kefir.merge(
+          Object.keys(ctx.ruleOptions).map((key) =>
+            streamOfChangedAndRemoved(subscribeRepo(ctx, { id: key }))
+          )
+        )
       )
     )
-    .spy()
+    // .spy()
     .flatMapConcat(indirectRunner(ctx))
     .observe({ value: logger.debug, error: logger.error });
 
@@ -138,9 +142,9 @@ export default (ctx, mirrors) => {
   //     .observe({ value: logger.debug, error: logger.error })
   // );
 
-  removeJobs(streamOfChangedAndRemoved(subscribeRepo(mirrors.guard)))
-    .flatMapConcat(agentRunner(ctx, mirrors.guard))
-    .observe({ value: logger.debug, error: logger.error });
+  // removeJobs(streamOfChangedAndRemoved(subscribeRepo(mirrors.guard)))
+  //   .flatMapConcat(agentRunner(ctx, mirrors.guard))
+  //   .observe({ value: logger.debug, error: logger.error });
 
   automaticJobs(
     subscribeRepo(ctx, mirrors.guard),
